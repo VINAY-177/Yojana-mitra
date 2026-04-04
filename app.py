@@ -356,7 +356,6 @@ def check_eligibility(profile, scheme):
     return True, score
 
 
-from deep_translator import GoogleTranslator
 import copy
 
 def get_recommendations(profile, lang="en"):
