@@ -15,7 +15,10 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_policypilot_key_dev")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "database.db")
+if os.environ.get("VERCEL"):
+    DB_PATH = "/tmp/database.db"
+else:
+    DB_PATH = os.path.join(os.path.dirname(__file__), "database.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
