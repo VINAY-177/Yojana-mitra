@@ -106,6 +106,10 @@ body {
     pointer-events: none;
     z-index: 0;
     overflow: hidden;
+    background: linear-gradient(rgba(240, 250, 244, 0.85), rgba(255, 255, 255, 0.90)), url('/static/background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
 }
 
 .bg-orb {
