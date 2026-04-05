@@ -136,7 +136,7 @@
                 <form action="/login" method="POST" class="login-form">
                     <div class="form-group">
                         <label for="login-phone">Phone Number</label>
-                        <input type="tel" id="login-phone" name="phone" placeholder="10-digit mobile number" required style="width: 100%; padding: 14px 16px; border-radius: var(--border-radius-xs); border: 1px solid var(--glass-border); background: var(--bg-tertiary); font-family: var(--font-body); font-size: 15px;">
+                        <input type="tel" id="login-phone" name="phone" placeholder="10-digit mobile number" required pattern="[0-9]{10}" maxlength="10" minlength="10" title="Please enter a valid 10-digit mobile number" style="width: 100%; padding: 14px 16px; border-radius: var(--border-radius-xs); border: 1px solid var(--glass-border); background: var(--bg-tertiary); font-family: var(--font-body); font-size: 15px;">
                     </div>
                     <div class="form-group">
                         <label for="login-password">Password</label>
@@ -156,7 +156,7 @@
                     </div>
                     <div class="form-group">
                         <label for="reg-phone">Phone Number</label>
-                        <input type="tel" id="reg-phone" name="phone" placeholder="10-digit mobile number" required style="width: 100%; padding: 14px 16px; border-radius: var(--border-radius-xs); border: 1px solid var(--glass-border); background: var(--bg-tertiary); font-family: var(--font-body); font-size: 15px;">
+                        <input type="tel" id="reg-phone" name="phone" placeholder="10-digit mobile number" required pattern="[0-9]{10}" maxlength="10" minlength="10" title="Please enter a valid 10-digit mobile number" style="width: 100%; padding: 14px 16px; border-radius: var(--border-radius-xs); border: 1px solid var(--glass-border); background: var(--bg-tertiary); font-family: var(--font-body); font-size: 15px;">
                     </div>
                     <div class="form-group">
                         <label for="reg-password">Password</label>
