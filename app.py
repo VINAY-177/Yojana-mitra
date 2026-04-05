@@ -45,6 +45,18 @@ def init_db():
                     password_hash TEXT NOT NULL
                 )
             ''')
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS saved_schemes (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    scheme_id TEXT NOT NULL,
+                    scheme_name TEXT NOT NULL,
+                    scheme_icon TEXT DEFAULT '',
+                    scheme_benefit TEXT DEFAULT '',
+                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, scheme_id)
+                )
+            ''')
         conn.commit()
     else:
         conn.execute('''
@@ -53,6 +65,18 @@ def init_db():
                 name TEXT NOT NULL,
                 phone TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS saved_schemes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                scheme_id TEXT NOT NULL,
+                scheme_name TEXT NOT NULL,
+                scheme_icon TEXT DEFAULT '',
+                scheme_benefit TEXT DEFAULT '',
+                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, scheme_id)
             )
         ''')
         conn.commit()
@@ -90,6 +114,55 @@ def get_user_by_phone(phone):
         user = conn.execute("SELECT id, name, phone, password_hash FROM users WHERE phone = ?", (phone,)).fetchone()
     conn.close()
     return user
+
+def save_scheme(user_id, scheme_id, scheme_name, scheme_icon, scheme_benefit):
+    conn = get_db_connection()
+    try:
+        if DATABASE_URL:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO saved_schemes (user_id, scheme_id, scheme_name, scheme_icon, scheme_benefit) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (user_id, scheme_id) DO NOTHING",
+                    (user_id, scheme_id, scheme_name, scheme_icon, scheme_benefit)
+                )
+        else:
+            conn.execute(
+                "INSERT OR IGNORE INTO saved_schemes (user_id, scheme_id, scheme_name, scheme_icon, scheme_benefit) VALUES (?, ?, ?, ?, ?)",
+                (user_id, scheme_id, scheme_name, scheme_icon, scheme_benefit)
+            )
+        conn.commit()
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+def unsave_scheme(user_id, scheme_id):
+    conn = get_db_connection()
+    try:
+        if DATABASE_URL:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM saved_schemes WHERE user_id = %s AND scheme_id = %s", (user_id, scheme_id))
+        else:
+            conn.execute("DELETE FROM saved_schemes WHERE user_id = ? AND scheme_id = ?", (user_id, scheme_id))
+        conn.commit()
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+def get_saved_schemes(user_id):
+    conn = get_db_connection()
+    schemes = []
+    if DATABASE_URL:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT scheme_id, scheme_name, scheme_icon, scheme_benefit FROM saved_schemes WHERE user_id = %s ORDER BY saved_at DESC", (user_id,))
+            schemes = cur.fetchall()
+    else:
+        rows = conn.execute("SELECT scheme_id, scheme_name, scheme_icon, scheme_benefit FROM saved_schemes WHERE user_id = ? ORDER BY saved_at DESC", (user_id,)).fetchall()
+        schemes = [dict(r) for r in rows]
+    conn.close()
+    return schemes
 
 with app.app_context():
     init_db()
@@ -626,7 +699,40 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", user_name=session.get("user_name"), user_phone=session.get("user_phone"))
+    saved = get_saved_schemes(session.get("user_id"))
+    return render_template("dashboard.html", user_name=session.get("user_name"), user_phone=session.get("user_phone"), saved_schemes=saved)
+
+
+@app.route("/api/save-scheme", methods=["POST"])
+@login_required
+def api_save_scheme():
+    data = request.get_json()
+    scheme_id = data.get("scheme_id", "")
+    scheme_name = data.get("scheme_name", "")
+    scheme_icon = data.get("scheme_icon", "")
+    scheme_benefit = data.get("scheme_benefit", "")
+    if not scheme_id:
+        return jsonify({"error": "Missing scheme_id"}), 400
+    success = save_scheme(session["user_id"], scheme_id, scheme_name, scheme_icon, scheme_benefit)
+    return jsonify({"saved": success})
+
+
+@app.route("/api/unsave-scheme", methods=["POST"])
+@login_required
+def api_unsave_scheme():
+    data = request.get_json()
+    scheme_id = data.get("scheme_id", "")
+    if not scheme_id:
+        return jsonify({"error": "Missing scheme_id"}), 400
+    success = unsave_scheme(session["user_id"], scheme_id)
+    return jsonify({"unsaved": success})
+
+
+@app.route("/api/saved-schemes")
+@login_required
+def api_saved_schemes():
+    saved = get_saved_schemes(session.get("user_id"))
+    return jsonify({"schemes": saved})
 
 
 @app.route("/advisor")

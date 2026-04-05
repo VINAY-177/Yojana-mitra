@@ -484,15 +484,50 @@
             <div class="scheme-why">✅ ${currentLang === 'hi' ? 'आप पात्र क्यों हैं' : 'Why you qualify'}: ${scheme.whyQualify}</div>
             <div class="scheme-explanation">${scheme.simpleExplanation}</div>
             ${stepsHTML}
-            <div class="scheme-action-row">
+            <div class="scheme-action-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <a href="${scheme.officialUrl}" target="_blank" class="scheme-link scheme-action-btn">
                     🌐 ${currentLang === 'hi' ? 'आधिकारिक वेबसाइट' : 'Apply on Official Website'} →
                 </a>
+                <button class="scheme-action-btn save-scheme-btn" onclick="saveScheme(this, '${scheme.id}', \`${(scheme.name || '').replace(/`/g, "'")}\`, '${scheme.icon}', \`${(scheme.benefit || '').replace(/`/g, "'")}\`)" style="background: rgba(16,185,129,0.1); color: var(--accent-primary); border: 1px solid var(--accent-primary); cursor: pointer; font-weight: 600; border-radius: 8px; padding: 10px 18px; font-size: 14px; transition: all 0.3s ease;">
+                    ⭐ ${currentLang === 'hi' ? 'सेव करें' : 'Save to Dashboard'}
+                </button>
             </div>
         `;
 
         return card;
     }
+
+    // ============================================================
+    // Save Scheme to Dashboard
+    // ============================================================
+    window.saveScheme = async function(btn, schemeId, schemeName, schemeIcon, schemeBenefit) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Saving...';
+        try {
+            const res = await fetch('/api/save-scheme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scheme_id: schemeId,
+                    scheme_name: schemeName,
+                    scheme_icon: schemeIcon,
+                    scheme_benefit: schemeBenefit
+                })
+            });
+            const data = await res.json();
+            if (data.saved) {
+                btn.textContent = '✅ Saved!';
+                btn.style.background = 'var(--accent-primary)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+            } else {
+                btn.textContent = '❌ Error';
+            }
+        } catch (e) {
+            btn.textContent = '❌ Error';
+        }
+        setTimeout(() => { btn.disabled = false; }, 2000);
+    };
 
     // ============================================================
     // Focus on chat input on load

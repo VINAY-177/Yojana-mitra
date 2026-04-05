@@ -143,11 +143,26 @@
             </div>
 
             <div class="glass-card dash-card">
-                <h3 style="color: var(--text-primary);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Saved Schemes</h3>
+                <h3 style="color: var(--text-primary);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Saved Schemes ({{ saved_schemes|length }})</h3>
+                {% if saved_schemes and saved_schemes|length > 0 %}
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                    {% for s in saved_schemes %}
+                    <div class="saved-scheme-item" id="saved-{{ s.scheme_id }}" style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.5); border-radius: 10px; border: 1px solid var(--glass-border);">
+                        <span style="font-size: 28px;">{{ s.scheme_icon }}</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">{{ s.scheme_name }}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">💰 {{ s.scheme_benefit[:80] }}{% if s.scheme_benefit|length > 80 %}...{% endif %}</div>
+                        </div>
+                        <button onclick="removeSaved('{{ s.scheme_id }}', this)" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Remove</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
                 <div class="empty-state" style="padding: 20px;">
                     <p>You haven't saved any schemes yet.</p>
-                    <p style="font-size: 13px; margin-top: 8px;">Click "Launch Advisor" to start discovering.</p>
+                    <p style="font-size: 13px; margin-top: 8px;">Click "Launch Advisor" and ⭐ Save schemes you like.</p>
                 </div>
+                {% endif %}
             </div>
 
         </div>
@@ -158,6 +173,31 @@
         <p>Yojana Mitra — Empowering citizens with knowledge 🇮🇳</p>
         <p class="footer-disclaimer">Data sourced from official government portals.</p>
     </footer>
+<script>
+    async function removeSaved(schemeId, btn) {
+        btn.textContent = '...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/unsave-scheme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scheme_id: schemeId })
+            });
+            const data = await res.json();
+            if (data.unsaved) {
+                const el = document.getElementById('saved-' + schemeId);
+                if (el) {
+                    el.style.transition = 'all 0.3s ease';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateX(20px)';
+                    setTimeout(() => el.remove(), 300);
+                }
+            }
+        } catch (e) {
+            btn.textContent = 'Error';
+        }
+    }
+</script>
 
 </body>
 </html>
