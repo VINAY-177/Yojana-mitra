@@ -1,5 +1,5 @@
 /**
- * PolicyPilot — Frontend Application
+ * Yojana Mitra — Frontend Application
  * Chat interface, form handling, and results rendering
  */
 

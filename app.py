@@ -1,5 +1,5 @@
 """
-PolicyPilot — Backend Server
+Yojana Mitra — Backend Server
 Helps Indian citizens discover government schemes tailored to their profile.
 Includes a natural language parser for conversational queries.
 """
@@ -13,7 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super_secret_policypilot_key_dev")
+app.secret_key = os.environ.get("SECRET_KEY", "super_secret_yojanamitra_key_dev")
 
 if os.environ.get("VERCEL"):
     DB_PATH = "/tmp/database.db"
@@ -628,7 +628,7 @@ def chat():
     if not message.strip():
         return jsonify({
             "type": "question",
-            "message": "Hello! 👋 I'm PolicyPilot, your personal government scheme advisor.\n\nTell me about yourself, for example:\n\"I am a 28-year-old farmer from UP, SC category, income 2 lakh\"\n\nOr just say what you do and where you're from, and I'll help you find the best schemes! 🇮🇳",
+            "message": "Hello! 👋 I'm Yojana Mitra, your personal government scheme advisor.\n\nTell me about yourself, for example:\n\"I am a 28-year-old farmer from UP, SC category, income 2 lakh\"\n\nOr just say what you do and where you're from, and I'll help you find the best schemes! 🇮🇳",
             "profile": existing_profile
         })
 
