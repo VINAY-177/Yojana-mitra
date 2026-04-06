@@ -381,16 +381,25 @@ def parse_natural_query(text):
     return profile, missing
 
 
-def generate_followup_question(missing_fields):
+def generate_followup_question(missing_fields, lang="en"):
     """Generate a friendly follow-up question for missing fields."""
-    questions = {
-        "age": "How old are you? (आपकी उम्र क्या है?)",
-        "income": "What is your approximate annual income? (आपकी सालाना आमदनी कितनी है?)",
-        "state": "Which state do you live in? (आप किस राज्य में रहते हैं?)",
-        "category": "What is your category — General, OBC, SC, or ST? (आपकी श्रेणी क्या है?)",
-        "gender": "What is your gender? (आपका लिंग क्या है?)",
-        "occupation": "What do you do for work? (e.g., farmer, student, business, job) (आप क्या काम करते हैं?)",
+    questions_en = {
+        "age": "How old are you?",
+        "income": "What is your approximate annual income?",
+        "state": "Which state do you live in?",
+        "category": "What is your category — General, OBC, SC, or ST?",
+        "gender": "What is your gender?",
+        "occupation": "What do you do for work? (e.g., farmer, student, business, job)",
     }
+    questions_hi = {
+        "age": "आपकी उम्र क्या है?",
+        "income": "आपकी अनुमानित सालाना आमदनी कितनी है?",
+        "state": "आप किस राज्य में रहते हैं?",
+        "category": "आपकी श्रेणी क्या है — सामान्य, OBC, SC, या ST?",
+        "gender": "आपका लिंग क्या है?",
+        "occupation": "आप क्या काम करते हैं? (जैसे: किसान, विद्यार्थी, व्यापार, नौकरी)",
+    }
+    questions = questions_hi if lang == "hi" else questions_en
 
     if not missing_fields:
         return None
@@ -400,11 +409,18 @@ def generate_followup_question(missing_fields):
         if field in questions:
             parts.append(questions[field])
 
-    if len(parts) == 1:
-        return f"To find the best schemes for you, I need one more detail: {parts[0]}"
+    if lang == "hi":
+        if len(parts) == 1:
+            return f"आपके लिए सर्वोत्तम योजनाएं खोजने के लिए, मुझे एक और जानकारी चाहिए: {parts[0]}"
+        else:
+            q_text = "\n".join(f"  • {q}" for q in parts)
+            return f"आपके लिए सर्वोत्तम योजनाएं खोजने के लिए, मुझे कुछ और जानकारी चाहिए:\n{q_text}\n\nआप एक ही संदेश में जवाब दे सकते हैं, जैसे: \"मैं 30 साल का हूं, पुरुष, OBC, बिहार से, आय 2 लाख\""
     else:
-        q_text = "\n".join(f"  • {q}" for q in parts)
-        return f"To find the best schemes for you, I need a few more details:\n{q_text}\n\nYou can answer in one message, for example: \"I am 30 years old, male, OBC, from Bihar, income 2 lakh\""
+        if len(parts) == 1:
+            return f"To find the best schemes for you, I need one more detail: {parts[0]}"
+        else:
+            q_text = "\n".join(f"  • {q}" for q in parts)
+            return f"To find the best schemes for you, I need a few more details:\n{q_text}\n\nYou can answer in one message, for example: \"I am 30 years old, male, OBC, from Bihar, income 2 lakh\""
 
 
 # -------------------------------------------------------------------
@@ -779,10 +795,16 @@ def chat():
     message = data.get("message", "")
     existing_profile = data.get("profile", {})
 
+    lang = data.get("lang", "en")
+
     if not message.strip():
+        if lang == "hi":
+            greeting = "नमस्ते! 👋 मैं योजना मित्र हूं, आपका सरकारी योजना सलाहकार।\n\nमुझे अपने बारे में बताइए, जैसे:\n\"मैं 28 साल का किसान हूं, UP से, SC श्रेणी, आय 2 लाख\"\n\nया बस बताइए आप क्या करते हैं और कहां से हैं, मैं आपके लिए सबसे अच्छी योजनाएं खोजूंगा!"
+        else:
+            greeting = "Hello! 👋 I'm Yojana Mitra, your personal government scheme advisor.\n\nTell me about yourself, for example:\n\"I am a 28-year-old farmer from UP, SC category, income 2 lakh\"\n\nOr just say what you do and where you're from, and I'll help you find the best schemes!"
         return jsonify({
             "type": "question",
-            "message": "Hello! 👋 I'm Yojana Mitra, your personal government scheme advisor.\n\nTell me about yourself, for example:\n\"I am a 28-year-old farmer from UP, SC category, income 2 lakh\"\n\nOr just say what you do and where you're from, and I'll help you find the best schemes! 🇮🇳",
+            "message": greeting,
             "profile": existing_profile
         })
 
@@ -812,23 +834,37 @@ def chat():
     lang = data.get("lang", "en")
 
     if len(critical_missing) >= 2:
-        followup = generate_followup_question(truly_missing)
+        followup = generate_followup_question(truly_missing, lang=lang)
         # Build partial summary
         found_parts = []
-        if "occupation" in merged:
-            found_parts.append(f"occupation: {merged['occupation']}")
-        if "state" in merged:
-            found_parts.append(f"state: {merged['state'].title()}")
-        if "category" in merged:
-            found_parts.append(f"category: {merged['category'].upper()}")
-        if "gender" in merged:
-            found_parts.append(f"gender: {merged['gender']}")
-        if "age" in merged:
-            found_parts.append(f"age: {merged['age']}")
-
-        understood = ""
-        if found_parts:
-            understood = f"Got it! I understand you are: {', '.join(found_parts)}.\n\n"
+        if lang == "hi":
+            if "occupation" in merged:
+                found_parts.append(f"पेशा: {merged['occupation']}")
+            if "state" in merged:
+                found_parts.append(f"राज्य: {merged['state'].title()}")
+            if "category" in merged:
+                found_parts.append(f"श्रेणी: {merged['category'].upper()}")
+            if "gender" in merged:
+                found_parts.append(f"लिंग: {merged['gender']}")
+            if "age" in merged:
+                found_parts.append(f"आयु: {merged['age']}")
+            understood = ""
+            if found_parts:
+                understood = f"समझ गया! आप हैं: {', '.join(found_parts)}।\n\n"
+        else:
+            if "occupation" in merged:
+                found_parts.append(f"occupation: {merged['occupation']}")
+            if "state" in merged:
+                found_parts.append(f"state: {merged['state'].title()}")
+            if "category" in merged:
+                found_parts.append(f"category: {merged['category'].upper()}")
+            if "gender" in merged:
+                found_parts.append(f"gender: {merged['gender']}")
+            if "age" in merged:
+                found_parts.append(f"age: {merged['age']}")
+            understood = ""
+            if found_parts:
+                understood = f"Got it! I understand you are: {', '.join(found_parts)}.\n\n"
 
         msg = understood + followup
         
@@ -884,26 +920,36 @@ def chat():
     summary = " ".join(desc_parts).strip()
 
     # Note about defaults
-    defaults_used = []
-    for field in truly_missing:
-        if field == "income":
-            defaults_used.append("income (assumed ₹3 lakh/year)")
-        elif field == "category":
-            defaults_used.append("category (assumed General)")
-        elif field == "gender":
-            defaults_used.append("gender (assumed male)")
-
-    defaults_note = ""
-    if defaults_used:
-        defaults_note = f"\n\n💡 Note: I assumed some details — {', '.join(defaults_used)}. You can refine your profile for more accurate results."
-
-    final_message = f"Here are the best government schemes for you as a {summary}! 🎯{defaults_note}"
-
     if lang == "hi":
-        if "Here are the best" in final_message:
-            final_message = "यहाँ आपके लिए सर्वश्रेष्ठ सरकारी योजनाएं हैं! 🎯"
-        
-        msg = "मुझे समझ आ गया है कि आप हैं: " + ", ".join(found_parts) + ".\n\n" + followup if 'found_parts' in locals() and found_parts else followup
+        defaults_used = []
+        for field in truly_missing:
+            if field == "income":
+                defaults_used.append("आय (अनुमानित ₹3 लाख/वर्ष)")
+            elif field == "category":
+                defaults_used.append("श्रेणी (अनुमानित सामान्य)")
+            elif field == "gender":
+                defaults_used.append("लिंग (अनुमानित पुरुष)")
+
+        defaults_note = ""
+        if defaults_used:
+            defaults_note = f"\n\n💡 नोट: मैंने कुछ जानकारी अनुमानित की है — {', '.join(defaults_used)}। अधिक सटीक परिणामों के लिए अपनी प्रोफ़ाइल परिष्कृत करें।"
+
+        final_message = f"यहाँ आपके लिए सर्वश्रेष्ठ सरकारी योजनाएं हैं! 🎯{defaults_note}"
+    else:
+        defaults_used = []
+        for field in truly_missing:
+            if field == "income":
+                defaults_used.append("income (assumed ₹3 lakh/year)")
+            elif field == "category":
+                defaults_used.append("category (assumed General)")
+            elif field == "gender":
+                defaults_used.append("gender (assumed male)")
+
+        defaults_note = ""
+        if defaults_used:
+            defaults_note = f"\n\n💡 Note: I assumed some details — {', '.join(defaults_used)}. You can refine your profile for more accurate results."
+
+        final_message = f"Here are the best government schemes for you as a {summary}! 🎯{defaults_note}"
 
     return jsonify({
         "type": "results",
@@ -948,8 +994,15 @@ def build_scheme_answer(scheme, question, lang="en"):
     q = question.lower()
     parts = []
 
+    # Use Hindi fields if available
+    name = scheme.get("nameHi", scheme.get("name", "")) if lang == "hi" else scheme.get("name", "")
+    benefit = scheme.get("benefitHi", scheme.get("benefit", "")) if lang == "hi" else scheme.get("benefit", "N/A")
+    explanation = scheme.get("simpleExplanationHi", scheme.get("simpleExplanation", "")) if lang == "hi" else scheme.get("simpleExplanation", "")
+    how_steps = scheme.get("howToApplyHi", scheme.get("howToApply", [])) if lang == "hi" else scheme.get("howToApply", [])
+    docs = scheme.get("documentsRequiredHi", scheme.get("documentsRequired", [])) if lang == "hi" else scheme.get("documentsRequired", [])
+
     # Header
-    parts.append(f"**{scheme.get('icon','')} {scheme.get('name', '')}**")
+    parts.append(f"**{scheme.get('icon','')} {name}**")
     parts.append("")
 
     # Determine what the user is asking about
@@ -959,48 +1012,58 @@ def build_scheme_answer(scheme, question, lang="en"):
     asks_benefit = any(w in q for w in ["benefit", "amount", "money", "kitna", "labh", "paisa", "value", "how much"])
     asks_general = not (asks_docs or asks_apply or asks_eligible or asks_benefit)
 
+    lbl_benefit = "लाभ" if lang == "hi" else "Benefit"
+    lbl_elig = "पात्रता" if lang == "hi" else "Eligibility"
+    lbl_apply = "आवेदन कैसे करें" if lang == "hi" else "How to Apply"
+    lbl_docs = "आवश्यक दस्तावेज़" if lang == "hi" else "Documents Required"
+    lbl_website = "आधिकारिक वेबसाइट" if lang == "hi" else "Official Website"
+    lbl_age = "आयु" if lang == "hi" else "Age"
+    lbl_income = "अधिकतम आय" if lang == "hi" else "Max Income"
+    lbl_cats = "श्रेणियां" if lang == "hi" else "Categories"
+    lbl_gender = "लिंग" if lang == "hi" else "Gender"
+    lbl_states = "राज्य" if lang == "hi" else "States"
+    lbl_years = "वर्ष" if lang == "hi" else "years"
+
     if asks_general or asks_benefit:
-        parts.append(f"💰 **Benefit:** {scheme.get('benefit', 'N/A')}")
-        parts.append(f"📝 {scheme.get('simpleExplanation', '')}")
+        parts.append(f"💰 **{lbl_benefit}:** {benefit}")
+        parts.append(f"📝 {explanation}")
         parts.append("")
 
     if asks_eligible or asks_general:
         elig = scheme.get("eligibility", {})
-        parts.append("✅ **Eligibility:**")
+        parts.append(f"✅ **{lbl_elig}:**")
         if elig.get("minAge") and elig.get("maxAge"):
-            parts.append(f"  • Age: {elig['minAge']}–{elig['maxAge']} years")
+            parts.append(f"  • {lbl_age}: {elig['minAge']}–{elig['maxAge']} {lbl_years}")
         if elig.get("maxIncome") and elig["maxIncome"] < 999999990:
-            parts.append(f"  • Max Income: ₹{elig['maxIncome']:,}/year")
+            parts.append(f"  • {lbl_income}: ₹{elig['maxIncome']:,}/{lbl_years}")
         cats = elig.get("categories", [])
         if cats:
-            parts.append(f"  • Categories: {', '.join(c.upper() for c in cats)}")
+            parts.append(f"  • {lbl_cats}: {', '.join(c.upper() for c in cats)}")
         genders = elig.get("gender", [])
         if len(genders) < 3:
-            parts.append(f"  • Gender: {', '.join(genders)}")
+            parts.append(f"  • {lbl_gender}: {', '.join(genders)}")
         states = elig.get("states", "all")
         if states != "all" and isinstance(states, list):
-            parts.append(f"  • States: {', '.join(s.title() for s in states[:5])}{'...' if len(states) > 5 else ''}")
+            parts.append(f"  • {lbl_states}: {', '.join(s.title() for s in states[:5])}{'...' if len(states) > 5 else ''}")
         parts.append("")
 
     if asks_apply or asks_general:
-        steps = scheme.get("howToApply", [])
-        if steps:
-            parts.append("📋 **How to Apply:**")
-            for i, step in enumerate(steps, 1):
+        if how_steps:
+            parts.append(f"📋 **{lbl_apply}:**")
+            for i, step in enumerate(how_steps, 1):
                 parts.append(f"  {i}. {step}")
             parts.append("")
 
     if asks_docs or asks_general:
-        docs = scheme.get("documentsRequired", [])
         if docs:
-            parts.append("🧾 **Documents Required:**")
+            parts.append(f"🧾 **{lbl_docs}:**")
             for doc in docs:
                 parts.append(f"  • {doc}")
             parts.append("")
 
     url = scheme.get("officialUrl", "")
     if url:
-        parts.append(f"🌐 **Official Website:** {url}")
+        parts.append(f"🌐 **{lbl_website}:** {url}")
 
     return "\n".join(parts)
 
@@ -1017,9 +1080,8 @@ def discuss():
     lang = data.get("lang", "en")
 
     if not question:
-        return jsonify({
-            "answer": "Please ask a question about a government scheme! For example: 'Tell me about PM-KISAN' or 'What documents do I need for Ayushman Bharat?'"
-        })
+        msg = "कृपया किसी सरकारी योजना के बारे में पूछें! जैसे: 'PM-KISAN के बारे में बताओ' या 'आयुष्मान भारत के लिए कौन से दस्तावेज़ चाहिए?'" if lang == "hi" else "Please ask a question about a government scheme! For example: 'Tell me about PM-KISAN' or 'What documents do I need for Ayushman Bharat?'"
+        return jsonify({"answer": msg})
 
     # If a specific scheme_id is provided, answer about that scheme
     if scheme_id:
@@ -1027,10 +1089,10 @@ def discuss():
             if scheme["id"] == scheme_id:
                 answer = build_scheme_answer(scheme, question, lang)
                 return jsonify({"answer": answer, "scheme_id": scheme_id})
-        return jsonify({"answer": "Sorry, I couldn't find that scheme."})
+        msg = "क्षमा करें, मुझे वह योजना नहीं मिली।" if lang == "hi" else "Sorry, I couldn't find that scheme."
+        return jsonify({"answer": msg})
 
     # Otherwise, search by keywords in the question
-    # Extract key search terms (remove common question words)
     stop_words = {"tell", "me", "about", "what", "is", "the", "how", "to", "can", "i",
                   "do", "does", "get", "for", "in", "of", "a", "an", "are", "this",
                   "which", "who", "need", "mujhe", "batao", "kya", "hai", "ke", "ka",
@@ -1051,25 +1113,31 @@ def discuss():
             unique_schemes.append(s)
 
     if unique_schemes:
-        # If we found exactly one strong match, give detailed answer
         if len(unique_schemes) == 1:
             answer = build_scheme_answer(unique_schemes[0], question, lang)
             return jsonify({"answer": answer, "scheme_id": unique_schemes[0]["id"]})
 
-        # Otherwise list the matches and let user pick
-        answer_parts = [f"I found **{len(unique_schemes)}** schemes matching your query:\n"]
-        for i, s in enumerate(unique_schemes[:8], 1):
-            answer_parts.append(f"{i}. {s.get('icon','')} **{s.get('name','')}** — {s.get('benefit','')[:80]}")
-
-        if len(unique_schemes) > 8:
-            answer_parts.append(f"\n...and {len(unique_schemes)-8} more.")
-
-        answer_parts.append("\nAsk me about any specific one, e.g. *\"Tell me about the first one\"* or mention its name!")
+        # List matches
+        if lang == "hi":
+            answer_parts = [f"आपकी खोज से **{len(unique_schemes)}** योजनाएं मिलीं:\n"]
+            for i, s in enumerate(unique_schemes[:8], 1):
+                sname = s.get('nameHi', s.get('name', ''))
+                sbenefit = s.get('benefitHi', s.get('benefit', ''))[:80]
+                answer_parts.append(f"{i}. {s.get('icon','')} **{sname}** — {sbenefit}")
+            if len(unique_schemes) > 8:
+                answer_parts.append(f"\n...और {len(unique_schemes)-8} और योजनाएं।")
+            answer_parts.append("\nकिसी विशेष योजना के बारे में पूछें, जैसे *\"पहली वाली के बारे में बताओ\"* या नाम बताएं!")
+        else:
+            answer_parts = [f"I found **{len(unique_schemes)}** schemes matching your query:\n"]
+            for i, s in enumerate(unique_schemes[:8], 1):
+                answer_parts.append(f"{i}. {s.get('icon','')} **{s.get('name','')}** — {s.get('benefit','')[:80]}")
+            if len(unique_schemes) > 8:
+                answer_parts.append(f"\n...and {len(unique_schemes)-8} more.")
+            answer_parts.append("\nAsk me about any specific one, e.g. *\"Tell me about the first one\"* or mention its name!")
         return jsonify({"answer": "\n".join(answer_parts), "matches": len(unique_schemes)})
 
-    return jsonify({
-        "answer": "I couldn't find a scheme matching your query. Try asking about a specific topic like 'education scholarships', 'housing scheme', 'farmer loan', or mention a scheme by name!"
-    })
+    not_found = "मुझे आपकी खोज से मिलती-जुलती कोई योजना नहीं मिली। 'शिक्षा छात्रवृत्ति', 'आवास योजना', 'किसान ऋण' जैसे विषय पूछें!" if lang == "hi" else "I couldn't find a scheme matching your query. Try asking about a specific topic like 'education scholarships', 'housing scheme', 'farmer loan', or mention a scheme by name!"
+    return jsonify({"answer": not_found})
 
 
 if __name__ == "__main__":

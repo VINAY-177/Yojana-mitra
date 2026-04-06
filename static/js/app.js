@@ -208,7 +208,10 @@
 
                     // Add a follow-up hint
                     setTimeout(() => {
-                        addChatMessage("💡 <em>You can now ask me about any specific scheme! Try: \"Tell me about PM-KISAN\" or \"What documents do I need for Ayushman Bharat?\"</em>");
+                        const hint = currentLang === 'hi'
+                            ? "💡 <em>अब आप किसी भी विशेष योजना के बारे में पूछ सकते हैं! जैसे: \"PM-KISAN के बारे में बताओ\" या \"आयुष्मान भारत के लिए कौन से दस्तावेज़ चाहिए?\"</em>"
+                            : "💡 <em>You can now ask me about any specific scheme! Try: \"Tell me about PM-KISAN\" or \"What documents do I need for Ayushman Bharat?\"</em>";
+                        addChatMessage(hint);
                     }, 1500);
 
                     if (data.results) {
