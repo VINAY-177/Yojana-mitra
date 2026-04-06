@@ -708,6 +708,60 @@ for sector_en, sector_hi in HEALTH_SECTORS:
             "howToApplyHi": ["निकटतम सरकारी पंजीकृत अस्पताल जाएं", "अपना ई-हेल्थ कार्ड या आधार दिखाएं", "कैशलेस लाभों का लाभ उठाएं"]
         })
 
+DEFENSE_SECTORS = [
+    ("Veterans Family", "दिग्गज परिवार"),
+    ("Disabled Soldier", "विकलांग सैनिक"),
+    ("Agniveer Upskilling", "अग्निवीर अपस्किलिंग"),
+    ("Widow Pension", "विधवा पेंशन"),
+    ("Gallantry Award", "वीरता पुरस्कार"),
+    ("Military Education", "सैन्य शिक्षा"),
+    ("Rehabilitation", "पुनर्वास"),
+    ("Housing Grant", "आवास अनुदान"),
+    ("Medical Insurance", "चिकित्सा बीमा"),
+    ("Business Setup", "व्यापार सेटअप")
+]
+
+# 8. Defense Sectors (10 * 10 = 100)
+for sector_en, sector_hi in DEFENSE_SECTORS:
+    sec_id = sector_en.lower().replace(" & ", "-").replace(" ", "-")
+    for i in range(1, 11):
+        roles = [
+            ("Lump Sum Grant", "एकमुश्त अनुदान", "One-time financial assistance", "एकमुश्त वित्तीय सहायता", 500000),
+            ("Monthly Pension", "मासिक पेंशन", "Regular monthly stipend", "नियमित मासिक वजीफा", 15000),
+            ("Education Allowance", "शिक्षा भत्ता", "Tuition fee reimbursement", "ट्यूशन शुल्क की प्रतिपूर्ति", 25000),
+            ("Medical Coverage", "चिकित्सा कवरेज", "Free healthcare at empanelled hospitals", "पैनल में शामिल अस्पतालों में मुफ्त स्वास्थ्य सेवा", 300000),
+            ("Travel Concession", "यात्रा रियायत", "Discounted air and train travel", "रियायती हवाई और ट्रेन यात्रा", 5000),
+            ("Housing Loan Subsidy", "आवास ऋण सब्सिडी", "Interest subvention on home loans", "होम लोन पर ब्याज सहायता", 150000),
+            ("Skill Training", "कौशल प्रशिक्षण", "Free vocational courses post-retirement", "सेवानिवृत्ति के बाद मुफ्त व्यावसायिक पाठ्यक्रम", 30000),
+            ("Business Loan", "व्यापार ऋण", "Low-interest loans for startups", "स्टार्टअप के लिए कम ब्याज वाला ऋण", 1000000),
+            ("Marriage Grant", "विवाह अनुदान", "Assistance for daughters' marriage", "बेटियों की शादी के लिए सहायता", 50000),
+            ("Disability Pension", "विकलांगता पेंशन", "Additional support for service-related injuries", "सेवा-संबंधी चोटों के लिए अतिरिक्त सहायता", 25000)
+        ]
+        
+        role_en, role_hi, desc_en, desc_hi, val = roles[i-1]
+        
+        new_schemes.append({
+            "id": f"def-{sec_id}-{i}",
+            "name": f"Armed Forces {sector_en} {role_en}",
+            "shortName": f"Defense {role_en}",
+            "category": "defense",
+            "icon": "🛡️",
+            "benefit": f"Benefit of ₹{val:,} for {desc_en.lower()} under the {sector_en} program",
+            "benefitValue": val,
+            "simpleExplanation": f"This scheme honors and supports defense personnel by providing {desc_en.lower()} targeting {sector_en} needs.",
+            "eligibility": {"minAge": 18, "maxAge": 100, "maxIncome": 999999999, "categories": ["general", "obc", "sc", "st"], "gender": ["male", "female", "other"], "occupations": ["unemployed", "student", "self_employed", "business"], "states": "all", "conditions": []},
+            "howToApply": ["Apply via the Kendriya Sainik Board portal", "Submit Discharge Book/Service Proof", "Verification by Zila Sainik Board"],
+            "documentsRequired": ["Aadhaar", "Discharge Book", "Ex-Serviceman Identity Card"],
+            "officialUrl": "https://ksb.gov.in",
+            "whyQualifyTemplate": f"As someone connected to defense, you are eligible for the {sector_en} {role_en}.",
+            "nameHi": f"सशस्त्र बल {sector_hi} {role_hi}",
+            "shortNameHi": f"रक्षा {role_hi}",
+            "benefitHi": f"{sector_hi} कार्यक्रम के तहत {desc_hi} के लिए ₹{val:,} का लाभ",
+            "simpleExplanationHi": f"यह योजना {sector_hi} की जरूरतों को लक्षित करते हुए {desc_hi} प्रदान करके रक्षा कर्मियों का सम्मान और समर्थन करती है।",
+            "documentsRequiredHi": ["आधार", "मुक्ति पुस्तक", "पूर्व सैनिक पहचान पत्र"],
+            "howToApplyHi": ["केंद्रीय सैनिक बोर्ड पोर्टल के माध्यम से आवेदन करें", "डिस्चार्ज बुक/सेवा प्रमाण जमा करें", "जिला सैनिक बोर्ड द्वारा सत्यापन"]
+        })
+
 # Write back to schemes.json safely
 try:
     with open(SCHEMES_PATH, "r", encoding="utf-8") as f:
